@@ -1,0 +1,32 @@
+import { 
+  IsString, 
+  IsNotEmpty, 
+  IsNumber, 
+  IsInt, 
+  IsPositive, 
+  Min
+} from 'class-validator';
+
+export class CreateProductDto {
+  @IsString({ message: 'Name must be a valid string.' })
+  @IsNotEmpty({ message: 'Name should not be empty.' })
+  name: string;
+
+  @IsNumber({ maxDecimalPlaces: 2 }, { message: 'Price must be a number with up to 2 decimal places.' })
+  @IsPositive({ message: 'Price must be a positive value.' })
+  @IsNotEmpty({ message: 'Price is required.' })
+  price: number;
+
+  @IsString({ message: 'Description must be a valid string.' })
+  @IsNotEmpty({ message: 'Description should not be empty.' })
+  description: string;
+
+  @IsString({ message: 'Ingredients must be a valid string.' })
+  @IsNotEmpty({ message: 'Ingredients should not be empty.' })
+  ingredients: string;
+
+  @IsInt({ message: 'Category ID must be an integer.' })
+  @Min(1, { message: 'Category ID must be at least 1.' })
+  @IsNotEmpty({ message: 'Category ID is required.' })
+  categoryId: number;
+}
