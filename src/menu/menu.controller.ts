@@ -12,7 +12,7 @@ export class MenuController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.menuService.findOne(+id);
+    return this.menuService.findOne(id);
   }
 
 }

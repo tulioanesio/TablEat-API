@@ -19,7 +19,7 @@ export class MenuService {
     });
   }
 
-  findOne(id: number) {
+  findOne(id: string) {
     return this.prismaService.product.findUnique({
       where: {
         id,

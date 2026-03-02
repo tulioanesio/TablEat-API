@@ -1,4 +1,4 @@
 export class CategoryResponseDto {
-  id: number;
+  id: string;
   name: string;
 }

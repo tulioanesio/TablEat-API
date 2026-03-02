@@ -27,7 +27,7 @@ export class ProductService {
     });
   }
 
-  findOne(id: number) {
+  findOne(id: string) {
     return this.prismaService.product.findUnique({
       where: {
         id,
@@ -41,7 +41,7 @@ export class ProductService {
     });
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
+  update(id: string, updateProductDto: UpdateProductDto) {
     return this.prismaService.product.update({
       where: {
         id,
@@ -56,7 +56,7 @@ export class ProductService {
     });
   }
 
-  remove(id: number) {
+  remove(id: string) {
     return this.prismaService.product.delete({
       where: {
         id,

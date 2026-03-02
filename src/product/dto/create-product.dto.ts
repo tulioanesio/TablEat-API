@@ -25,8 +25,6 @@ export class CreateProductDto {
   @IsNotEmpty({ message: 'Ingredients should not be empty.' })
   ingredients: string;
 
-  @IsInt({ message: 'Category ID must be an integer.' })
-  @Min(1, { message: 'Category ID must be at least 1.' })
   @IsNotEmpty({ message: 'Category ID is required.' })
-  categoryId: number;
+  categoryId: string;
 }
