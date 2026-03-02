@@ -1,43 +1,96 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Prisma } from 'src/generated/prisma/client';
 
 @Injectable()
 export class CategoryService {
   constructor(private readonly prismaService: PrismaService) {}
-  create(createCategoryDto: CreateCategoryDto) {
-    return this.prismaService.category.create({
-      data: createCategoryDto,
-    });
+
+  async create(createCategoryDto: CreateCategoryDto) {
+    try {
+      return await this.prismaService.category.create({
+        data: createCategoryDto,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new BadRequestException('Category not found');
+      }
+
+      throw new InternalServerErrorException('Failed to create category');
+    }
   }
 
-  findAll() {
-    return this.prismaService.category.findMany();
+  async findAll() {
+    try {
+      return await this.prismaService.category.findMany();
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Internal server error while finding all categories',
+      );
+    }
   }
 
-  findOne(id: string) {
-    return this.prismaService.category.findUnique({
-      where: {
-        id,
-      },
-    });
+  async findOne(id: string) {
+    try {
+      return await this.prismaService.category.findUnique({
+        where: {
+          id,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException('Category not found');
+      }
+
+      throw new InternalServerErrorException(
+        'Internal server error while finding category',
+      );
+    }
   }
 
-  update(id: string, updateCategoryDto: UpdateCategoryDto) {
-    return this.prismaService.category.update({
-      where: {
-        id,
-      },
-      data: updateCategoryDto,
-    });
+  async update(id: string, updateCategoryDto: UpdateCategoryDto) {
+    try {
+      return await this.prismaService.category.update({
+        where: {
+          id,
+        },
+        data: updateCategoryDto,
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to update category');
+    }
   }
+  async remove(id: string) {
+    try {
+      return await this.prismaService.category.delete({
+        where: {
+          id,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException('Product not found');
+      }
 
-  remove(id: string) {
-    return this.prismaService.category.delete({
-      where: {
-        id,
-      },
-    });
+      throw new InternalServerErrorException(
+        'Internal server error while deleting product',
+      );
+    }
   }
 }

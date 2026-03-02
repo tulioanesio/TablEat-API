@@ -19,12 +19,13 @@ export class CreateProductDto {
 
   @IsString({ message: 'Description must be a valid string.' })
   @IsNotEmpty({ message: 'Description should not be empty.' })
-  description: string;
+  description?: string;
 
   @IsString({ message: 'Ingredients must be a valid string.' })
   @IsNotEmpty({ message: 'Ingredients should not be empty.' })
-  ingredients: string;
+  ingredients?: string;
 
   @IsNotEmpty({ message: 'Category ID is required.' })
+  @IsString({ message: 'Category ID must be a valid string.' })
   categoryId: string;
 }
