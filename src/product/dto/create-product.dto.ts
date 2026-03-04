@@ -1,10 +1,10 @@
-import { 
-  IsString, 
-  IsNotEmpty, 
-  IsNumber, 
-  IsInt, 
-  IsPositive, 
-  Min
+import {
+  IsString,
+  IsNotEmpty,
+  IsNumber,
+  IsInt,
+  IsPositive,
+  Min,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -12,7 +12,10 @@ export class CreateProductDto {
   @IsNotEmpty({ message: 'Name should not be empty.' })
   name: string;
 
-  @IsNumber({ maxDecimalPlaces: 2 }, { message: 'Price must be a number with up to 2 decimal places.' })
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'Price must be a number with up to 2 decimal places.' },
+  )
   @IsPositive({ message: 'Price must be a positive value.' })
   @IsNotEmpty({ message: 'Price is required.' })
   price: number;

@@ -31,7 +31,7 @@ model Category {
 
 model Table {
   id        String   @id @default(uuid(7))
-  number    Int
+  number    Int @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   orders    Order[]
