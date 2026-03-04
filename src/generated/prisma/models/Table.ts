@@ -221,14 +221,14 @@ export type TableOrderByWithRelationInput = {
 
 export type TableWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  number?: number
   AND?: Prisma.TableWhereInput | Prisma.TableWhereInput[]
   OR?: Prisma.TableWhereInput[]
   NOT?: Prisma.TableWhereInput | Prisma.TableWhereInput[]
+  number?: Prisma.IntFilter<"Table"> | number
   createdAt?: Prisma.DateTimeFilter<"Table"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Table"> | Date | string
   orders?: Prisma.OrderListRelationFilter
-}, "id" | "number">
+}, "id">
 
 export type TableOrderByWithAggregationInput = {
   id?: Prisma.SortOrder

@@ -14,9 +14,14 @@ import { UpdateTableDto } from './dto/update-table.dto';
 export class TableController {
   constructor(private readonly tableService: TableService) {}
 
-  @Get()
-  findAll() {
-    return this.tableService.findAll();
+  @Post()
+  create() {
+    return this.tableService.create();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.tableService.findOne(id);
   }
 
   @Patch(':id')

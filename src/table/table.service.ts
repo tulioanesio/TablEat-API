@@ -9,32 +9,38 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from 'src/generated/prisma/client';
 
 @Injectable()
-export class TableService implements OnModuleInit {
+export class TableService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async onModuleInit() {
-    await this.ensureFixedTableExists();
-  }
-
-  private async ensureFixedTableExists() {
-    const fixedId = '01955e9c-8a20-72d5-9988-123456789abc';
-
-    await this.prismaService.table.upsert({
-      where: { id: fixedId },
-      update: {},
-      create: {
-        id: fixedId,
-        number: 1,
-      },
-    });
-  }
-
-  async findAll() {
+  async create() {
     try {
-      return await this.prismaService.table.findMany();
+      return await this.prismaService.table.create({
+        data: {
+          number: 1,
+        },
+      });
     } catch (error) {
       throw new InternalServerErrorException(
-        'Internal server error while fetching tables',
+        'Internal server error while creating table',
+      );
+    }
+  }
+
+  async findOne(id: string) {
+    try {
+      const table = await this.prismaService.table.findUnique({
+        where: { id },
+      });
+
+      if (!table) {
+        throw new NotFoundException('Table not found');
+      }
+
+      return table;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      throw new InternalServerErrorException(
+        'Internal server error while fetching table',
       );
     }
   }
