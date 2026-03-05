@@ -5,6 +5,7 @@ import {
   IsInt,
   IsPositive,
   Min,
+  IsUrl,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -27,6 +28,10 @@ export class CreateProductDto {
   @IsString({ message: 'Ingredients must be a valid string.' })
   @IsNotEmpty({ message: 'Ingredients should not be empty.' })
   ingredients?: string;
+
+  @IsString({ message: 'Image URL must be a valid string.' })
+  @IsUrl({}, { message: 'Image URL must be a valid URL.' })
+  imageUrl?: string;
 
   @IsNotEmpty({ message: 'Category ID is required.' })
   @IsString({ message: 'Category ID must be a valid string.' })

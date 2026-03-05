@@ -1,4 +1,4 @@
-import { IsString, IsInt, Min, IsNotEmpty } from 'class-validator';
+import { IsString, IsInt, Min, IsNotEmpty, IsNumber } from 'class-validator';
 
 export class DraftItemDto {
   @IsString()

@@ -28,7 +28,7 @@ export class OrderService {
 
     const cacheKey = `draft_order:${tableId}`;
 
-    let draft: DraftItemDto[] = (await this.cacheManager.get(cacheKey)) || [];
+    let draft: any[] = (await this.cacheManager.get(cacheKey)) || [];
 
     const existingItem = draft.find(
       (draftItem) => draftItem.productId === item.productId,
@@ -37,7 +37,27 @@ export class OrderService {
     if (existingItem) {
       existingItem.quantity += item.quantity;
     } else {
-      draft.push(item);
+      const product = await this.prisma.product.findUnique({
+        where: { id: item.productId },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          imageUrl: true,
+        },
+      });
+
+      if (!product) {
+        throw new NotFoundException('Product not found.');
+      }
+
+      draft.push({
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        quantity: item.quantity,
+      });
     }
     await this.cacheManager.set(cacheKey, draft, this.TTL_15_MIN);
 

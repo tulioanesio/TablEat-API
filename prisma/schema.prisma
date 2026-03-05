@@ -14,6 +14,8 @@ model Product {
   price       Decimal     @db.Decimal(10, 2)
   description String?
   ingredients String?
+  imageUrl   String?
+  available   Boolean     @default(true)
   category    Category?   @relation(fields: [categoryId], references: [id])
   categoryId  String?
   createdAt   DateTime    @default(now())

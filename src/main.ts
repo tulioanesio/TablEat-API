@@ -14,9 +14,13 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('TablEat API')
-    .setDescription('API to introduces a new way to order food in restaurants')
+    .setDescription('The TablEat restaurant management system API description')
     .setVersion('1.0')
-    .addTag('tablEat')
+    .addTag('order', 'Drafting and finalizing customer orders')
+    .addTag('table', 'Physical table management and registration')
+    .addTag('product', 'Menu items and catalog')
+    .addTag('category', 'Product categorization')
+    .addTag('menu', 'Public menu access')
     .build();
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, documentFactory);
