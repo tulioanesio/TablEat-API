@@ -1,26 +1,164 @@
-import { Injectable } from '@nestjs/common';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
+import {
+  Inject,
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { DraftItemDto } from './dto/draft.item.dto';
 
 @Injectable()
 export class OrderService {
-  async create(createOrderDto: CreateOrderDto) {
-  return await 'This action adds a new order';
+  private readonly TTL_15_MIN = 15 * 60 * 1000;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
+
+  async addItemToDraft(tableId: string, item: DraftItemDto) {
+    const tableExists = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
+
+    if (!tableExists) {
+      throw new NotFoundException('Table not found.');
+    }
+
+    const cacheKey = `draft_order:${tableId}`;
+
+    let draft: DraftItemDto[] = (await this.cacheManager.get(cacheKey)) || [];
+
+    const existingItem = draft.find(
+      (draftItem) => draftItem.productId === item.productId,
+    );
+
+    if (existingItem) {
+      existingItem.quantity += item.quantity;
+    } else {
+      draft.push(item);
+    }
+    await this.cacheManager.set(cacheKey, draft, this.TTL_15_MIN);
+
+    return draft;
   }
 
-  async findAll() {
-  return await `This action returns all order`;
+  async getDraft(tableId: string) {
+    const tableExists = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
+
+    if (!tableExists) {
+      throw new NotFoundException('Table not found.');
+    }
+
+    const cacheKey = `draft_order:${tableId}`;
+    const draft = await this.cacheManager.get(cacheKey);
+    return draft || [];
   }
 
-  async findOne(id: number) {
-  return await `This action returns a #${id} order`;
+  async finalizeOrder(tableId: string) {
+    const tableExists = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
+
+    if (!tableExists) {
+      throw new NotFoundException('Table not found.');
+    }
+
+    const cacheKey = `draft_order:${tableId}`;
+
+    const draftItems = (await this.cacheManager.get(cacheKey)) as
+      | DraftItemDto[]
+      | undefined;
+
+    if (!draftItems || draftItems.length === 0) {
+      throw new BadRequestException('Order is empty or session has expired.');
+    }
+
+    const newOrder = await this.prisma.order.create({
+      data: {
+        tableId: tableId,
+        orderItems: {
+          create: draftItems.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        },
+      },
+      include: { orderItems: true },
+    });
+
+    await this.cacheManager.del(cacheKey);
+
+    return newOrder;
   }
 
-  async update(id: number, updateOrderDto: UpdateOrderDto) {
-  return await `This action updates a #${id} order`;
+  async updateDraftItem(tableId: string, productId: string, quantity: number) {
+    const tableExists = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
+
+    if (!tableExists) {
+      throw new NotFoundException('Table not found.');
+    }
+
+    const cacheKey = `draft_order:${tableId}`;
+    const draft: DraftItemDto[] = (await this.cacheManager.get(cacheKey)) || [];
+
+    const itemIndex = draft.findIndex((item) => {
+      const isSameProduct = item.productId === productId;
+      return isSameProduct;
+    });
+
+    if (itemIndex === -1) {
+      throw new NotFoundException('Item not found in draft.');
+    }
+
+    if (quantity <= 0) {
+      throw new BadRequestException(
+        'Quantity must be greater than zero. Use remove to delete the item.',
+      );
+    }
+
+    draft[itemIndex].quantity = quantity;
+    await this.cacheManager.set(cacheKey, draft, this.TTL_15_MIN);
+
+    return draft;
   }
 
-  async remove(id: number) {
-  return await `This action removes a #${id} order`;
+  async removeDraftItem(tableId: string, productId: string) {
+    const tableExists = await this.prisma.table.findUnique({
+      where: { id: tableId },
+    });
+
+    if (!tableExists) {
+      throw new NotFoundException('Table not found.');
+    }
+
+    const cacheKey = `draft_order:${tableId}`;
+    let draft: DraftItemDto[] = (await this.cacheManager.get(cacheKey)) || [];
+
+    const itemExists = draft.some((item) => {
+      const isSameProduct = item.productId === productId;
+      return isSameProduct;
+    });
+    if (!itemExists) {
+      throw new NotFoundException('Item not found in draft.');
+    }
+
+    draft = draft.filter((item) => {
+      const isDifferentProduct = item.productId !== productId;
+      return isDifferentProduct;
+    });
+
+    if (draft.length === 0) {
+      await this.cacheManager.del(cacheKey);
+    } else {
+      await this.cacheManager.set(cacheKey, draft, this.TTL_15_MIN);
+    }
+
+    return draft;
   }
 }

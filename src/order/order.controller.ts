@@ -1,34 +1,56 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { OrderService } from './order.service';
-import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { DraftItemDto } from './dto/draft.item.dto';
 
 @Controller('order')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  @Post()
-  create(@Body() createOrderDto: CreateOrderDto) {
-    return this.orderService.create(createOrderDto);
+  @Post('table/:tableId/draft')
+  addItemToDraft(
+    @Param('tableId') tableId: string,
+    @Body() draftItemDto: DraftItemDto,
+  ) {
+    return this.orderService.addItemToDraft(tableId, draftItemDto);
   }
 
-  @Get()
-  findAll() {
-    return this.orderService.findAll();
+  @Get('table/:tableId/draft')
+  getDraft(@Param('tableId') tableId: string) {
+    return this.orderService.getDraft(tableId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.orderService.findOne(+id);
+  @Post('table/:tableId/finalize')
+  finalizeOrder(@Param('tableId') tableId: string) {
+    return this.orderService.finalizeOrder(tableId);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.orderService.update(+id, updateOrderDto);
+  @Patch('table/:tableId/draft/:productId')
+  updateDraftItem(
+    @Param('tableId') tableId: string,
+    @Param('productId') productId: string,
+    @Body('quantity') quantity: number,
+  ) {
+    return this.orderService.updateDraftItem(
+      tableId,
+      productId,
+      quantity
+    );
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.orderService.remove(+id);
+  @Delete('table/:tableId/draft/:productId')
+  removeDraftItem(
+    @Param('tableId') tableId: string,
+    @Param('productId') productId: string,
+  ) {
+    return this.orderService.removeDraftItem(tableId, productId);
   }
 }
