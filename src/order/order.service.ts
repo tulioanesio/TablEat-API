@@ -17,6 +17,12 @@ export class OrderService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
+  private calculateTotal(draft: any[]): number {
+    return draft.reduce((total, item) => {
+      return total + Number(item.price) * item.quantity;
+    }, 0);
+  }
+
   async addItemToDraft(tableId: string, item: DraftItemDto) {
     const tableExists = await this.prisma.table.findUnique({
       where: { id: tableId },
@@ -27,7 +33,6 @@ export class OrderService {
     }
 
     const cacheKey = `draft_order:${tableId}`;
-
     let draft: any[] = (await this.cacheManager.get(cacheKey)) || [];
 
     const existingItem = draft.find(
@@ -54,14 +59,18 @@ export class OrderService {
       draft.push({
         productId: product.id,
         name: product.name,
-        price: product.price,
+        price: product.price, 
         imageUrl: product.imageUrl,
         quantity: item.quantity,
       });
     }
+    
     await this.cacheManager.set(cacheKey, draft, this.TTL_15_MIN);
 
-    return draft;
+    return {
+      items: draft,
+      totalPrice: this.calculateTotal(draft),
+    };
   }
 
   async getDraft(tableId: string) {
@@ -74,8 +83,12 @@ export class OrderService {
     }
 
     const cacheKey = `draft_order:${tableId}`;
-    const draft = await this.cacheManager.get(cacheKey);
-    return draft || [];
+    const draft: any[] = (await this.cacheManager.get(cacheKey)) || [];
+    
+    return {
+      items: draft,
+      totalPrice: this.calculateTotal(draft),
+    };
   }
 
   async finalizeOrder(tableId: string) {
@@ -88,10 +101,7 @@ export class OrderService {
     }
 
     const cacheKey = `draft_order:${tableId}`;
-
-    const draftItems = (await this.cacheManager.get(cacheKey)) as
-      | DraftItemDto[]
-      | undefined;
+    const draftItems = (await this.cacheManager.get(cacheKey)) as any[] | undefined;
 
     if (!draftItems || draftItems.length === 0) {
       throw new BadRequestException('Order is empty or session has expired.');
@@ -106,6 +116,7 @@ export class OrderService {
             quantity: item.quantity,
           })),
         },
+        totalPrice: this.calculateTotal(draftItems),
       },
       include: { orderItems: true },
     });
@@ -125,12 +136,9 @@ export class OrderService {
     }
 
     const cacheKey = `draft_order:${tableId}`;
-    const draft: DraftItemDto[] = (await this.cacheManager.get(cacheKey)) || [];
+    const draft: any[] = (await this.cacheManager.get(cacheKey)) || [];
 
-    const itemIndex = draft.findIndex((item) => {
-      const isSameProduct = item.productId === productId;
-      return isSameProduct;
-    });
+    const itemIndex = draft.findIndex((item) => item.productId === productId);
 
     if (itemIndex === -1) {
       throw new NotFoundException('Item not found in draft.');
@@ -145,7 +153,10 @@ export class OrderService {
     draft[itemIndex].quantity = quantity;
     await this.cacheManager.set(cacheKey, draft, this.TTL_15_MIN);
 
-    return draft;
+    return {
+      items: draft,
+      totalPrice: this.calculateTotal(draft),
+    };
   }
 
   async removeDraftItem(tableId: string, productId: string) {
@@ -158,20 +169,14 @@ export class OrderService {
     }
 
     const cacheKey = `draft_order:${tableId}`;
-    let draft: DraftItemDto[] = (await this.cacheManager.get(cacheKey)) || [];
+    let draft: any[] = (await this.cacheManager.get(cacheKey)) || [];
 
-    const itemExists = draft.some((item) => {
-      const isSameProduct = item.productId === productId;
-      return isSameProduct;
-    });
+    const itemExists = draft.some((item) => item.productId === productId);
     if (!itemExists) {
       throw new NotFoundException('Item not found in draft.');
     }
 
-    draft = draft.filter((item) => {
-      const isDifferentProduct = item.productId !== productId;
-      return isDifferentProduct;
-    });
+    draft = draft.filter((item) => item.productId !== productId);
 
     if (draft.length === 0) {
       await this.cacheManager.del(cacheKey);
@@ -179,6 +184,9 @@ export class OrderService {
       await this.cacheManager.set(cacheKey, draft, this.TTL_15_MIN);
     }
 
-    return draft;
+    return {
+      items: draft,
+      totalPrice: this.calculateTotal(draft),
+    };
   }
 }

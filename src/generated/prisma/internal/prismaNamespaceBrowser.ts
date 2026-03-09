@@ -113,6 +113,7 @@ export type TableScalarFieldEnum = (typeof TableScalarFieldEnum)[keyof typeof Ta
 export const OrderScalarFieldEnum = {
   id: 'id',
   tableId: 'tableId',
+  totalPrice: 'totalPrice',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
