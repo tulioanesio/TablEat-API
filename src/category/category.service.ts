@@ -30,9 +30,31 @@ export class CategoryService {
     }
   }
 
-  async findAll() {
+  async findAll(page: number = 1, limit: number = 10) {
     try {
-      return await this.prismaService.category.findMany();
+      const take = Number(limit);
+      const skip = (Number(page) - 1) * take;
+      const [categories, totalItems] = await Promise.all([
+        this.prismaService.category.findMany({
+          take,
+          skip,
+        }),
+        this.prismaService.category.count(),
+      ]);
+
+      const totalPages = Math.ceil(totalItems / take);
+
+      return {
+        data: categories,
+        meta: {
+          totalItems,
+          totalPages,
+          currentPage: Number(page),
+          itemsPerPage: take,
+          hasNextPage: Number(page) < totalPages,
+          hasPreviousPage: Number(page) > 1,
+        },
+      };
     } catch (error) {
       throw new InternalServerErrorException(
         'Internal server error while finding all categories',

@@ -3,10 +3,12 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { DraftItemDto } from './dto/draft.item.dto';
+import { Prisma } from 'src/generated/prisma/client';
 
 @Injectable()
 export class OrderService {
@@ -59,12 +61,12 @@ export class OrderService {
       draft.push({
         productId: product.id,
         name: product.name,
-        price: product.price, 
+        price: product.price,
         imageUrl: product.imageUrl,
         quantity: item.quantity,
       });
     }
-    
+
     await this.cacheManager.set(cacheKey, draft, this.TTL_15_MIN);
 
     return {
@@ -84,7 +86,7 @@ export class OrderService {
 
     const cacheKey = `draft_order:${tableId}`;
     const draft: any[] = (await this.cacheManager.get(cacheKey)) || [];
-    
+
     return {
       items: draft,
       totalPrice: this.calculateTotal(draft),
@@ -101,7 +103,9 @@ export class OrderService {
     }
 
     const cacheKey = `draft_order:${tableId}`;
-    const draftItems = (await this.cacheManager.get(cacheKey)) as any[] | undefined;
+    const draftItems = (await this.cacheManager.get(cacheKey)) as
+      | any[]
+      | undefined;
 
     if (!draftItems || draftItems.length === 0) {
       throw new BadRequestException('Order is empty or session has expired.');
@@ -188,5 +192,74 @@ export class OrderService {
       items: draft,
       totalPrice: this.calculateTotal(draft),
     };
+  }
+
+  async findAll(page: number = 1, limit: number = 10) {
+    try {
+      const take = Number(limit);
+      const skip = (Number(page) - 1) * take;
+
+      const [orders, totalItems] = await Promise.all([
+        this.prisma.order.findMany({
+          skip,
+          take,
+          orderBy: {
+            createdAt: 'desc',
+          },
+          include: {
+            orderItems: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    price: true,
+                    imageUrl: true,
+                  },
+                },
+              },
+            },
+          },
+        }),
+        this.prisma.order.count(),
+      ]);
+
+      const totalPages = Math.ceil(totalItems / take);
+
+      return {
+        data: orders,
+        meta: {
+          totalItems,
+          totalPages,
+          currentPage: Number(page),
+          itemsPerPage: take,
+          hasNextPage: Number(page) < totalPages,
+          hasPreviousPage: Number(page) > 1,
+        },
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'Internal server error while finding products',
+      );
+    }
+  }
+
+  async removeOrder(id: string) {
+    try {
+      return await this.prisma.order.delete({
+        where: { id },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException('Order not found');
+      }
+
+      throw new InternalServerErrorException(
+        'Internal server error while deleting order',
+      );
+    }
   }
 }

@@ -21,29 +21,58 @@ export class ProductService {
         data: createProductDto,
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
         throw new BadRequestException('Category not found');
       }
 
-      throw new InternalServerErrorException('Internal server error while creating product');
+      throw new InternalServerErrorException(
+        'Internal server error while creating product',
+      );
     }
   }
 
-  async findAll() {
+  async findAll(page: number = 1, limit: number = 10) {
     try {
-      return await this.prismaService.product.findMany({
-        orderBy: {
-          categoryId: 'asc',
+      const take = Number(limit);
+      const skip = (Number(page) - 1) * take;
+
+      const [products, totalItems] = await Promise.all([
+        this.prismaService.product.findMany({
+          skip, 
+          take,
+          orderBy: {
+            categoryId: 'asc',
+          },
+          omit: {
+            categoryId: true,
+          },
+          include: {
+            category: true,
+          },
+        }),
+        this.prismaService.product.count(),
+      ]);
+
+      const totalPages = Math.ceil(totalItems / take);
+
+      return {
+        data: products,
+        meta: {
+          totalItems,
+          totalPages,
+          currentPage: Number(page),
+          itemsPerPage: take,
+          hasNextPage: Number(page) < totalPages,
+          hasPreviousPage: Number(page) > 1,
         },
-        omit: {
-          categoryId: true,
-        },
-        include: {
-          category: true,
-        },
-      });
+      };
     } catch (error) {
-      throw new InternalServerErrorException('Internal server error while finding products');
+      throw new InternalServerErrorException(
+        'Internal server error while finding products',
+      );
     }
   }
 
@@ -55,11 +84,16 @@ export class ProductService {
         include: { category: true },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
         throw new NotFoundException('Product not found');
       }
 
-      throw new InternalServerErrorException('Internal server error while finding product');
+      throw new InternalServerErrorException(
+        'Internal server error while finding product',
+      );
     }
   }
 
@@ -78,14 +112,22 @@ export class ProductService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
         throw new NotFoundException('Product not found');
       }
 
-      if(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
         throw new BadRequestException('Category not found');
       }
-      throw new InternalServerErrorException('Internal server error while updating product');
+      throw new InternalServerErrorException(
+        'Internal server error while updating product',
+      );
     }
   }
 
