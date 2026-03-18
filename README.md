@@ -82,10 +82,11 @@ Once running, the API will be available at `http://localhost:3000` (or the port 
 ### Docker Deployment
 
 A Dockerfile is included for containerizing the API itself. To build and run the application container:
-Bash
 
+```bash
 docker build -t tableat-api .
 docker run -p 3000:3000 --env-file .env tableat-api
+```
 
 ## License
 
