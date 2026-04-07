@@ -5,17 +5,17 @@ import {
   NotFoundException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { DraftItemDto } from './dto/draft.item.dto';
-import { Prisma } from 'src/generated/prisma/client';
+import { Prisma } from '../generated/prisma/client';
 
 @Injectable()
 export class OrderService {
   private readonly TTL_15_MIN = 15 * 60 * 1000;
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly prismaService: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
@@ -26,7 +26,7 @@ export class OrderService {
   }
 
   async addItemToDraft(tableId: string, item: DraftItemDto) {
-    const tableExists = await this.prisma.table.findUnique({
+    const tableExists = await this.prismaService.table.findUnique({
       where: { id: tableId },
     });
 
@@ -44,7 +44,7 @@ export class OrderService {
     if (existingItem) {
       existingItem.quantity += item.quantity;
     } else {
-      const product = await this.prisma.product.findUnique({
+      const product = await this.prismaService.product.findUnique({
         where: { id: item.productId },
         select: {
           id: true,
@@ -76,7 +76,7 @@ export class OrderService {
   }
 
   async getDraft(tableId: string) {
-    const tableExists = await this.prisma.table.findUnique({
+    const tableExists = await this.prismaService.table.findUnique({
       where: { id: tableId },
     });
 
@@ -94,7 +94,7 @@ export class OrderService {
   }
 
   async finalizeOrder(tableId: string) {
-    const tableExists = await this.prisma.table.findUnique({
+    const tableExists = await this.prismaService.table.findUnique({
       where: { id: tableId },
     });
 
@@ -111,7 +111,7 @@ export class OrderService {
       throw new BadRequestException('Order is empty or session has expired.');
     }
 
-    const newOrder = await this.prisma.order.create({
+    const newOrder = await this.prismaService.order.create({
       data: {
         tableId: tableId,
         orderItems: {
@@ -131,7 +131,7 @@ export class OrderService {
   }
 
   async updateDraftItem(tableId: string, productId: string, quantity: number) {
-    const tableExists = await this.prisma.table.findUnique({
+    const tableExists = await this.prismaService.table.findUnique({
       where: { id: tableId },
     });
 
@@ -164,7 +164,7 @@ export class OrderService {
   }
 
   async removeDraftItem(tableId: string, productId: string) {
-    const tableExists = await this.prisma.table.findUnique({
+    const tableExists = await this.prismaService.table.findUnique({
       where: { id: tableId },
     });
 
@@ -200,7 +200,7 @@ export class OrderService {
       const skip = (Number(page) - 1) * take;
 
       const [orders, totalItems] = await Promise.all([
-        this.prisma.order.findMany({
+        this.prismaService.order.findMany({
           skip,
           take,
           orderBy: {
@@ -221,7 +221,7 @@ export class OrderService {
             },
           },
         }),
-        this.prisma.order.count(),
+        this.prismaService.order.count(),
       ]);
 
       const totalPages = Math.ceil(totalItems / take);
@@ -246,7 +246,7 @@ export class OrderService {
 
   async removeOrder(id: string) {
     try {
-      return await this.prisma.order.delete({
+      return await this.prismaService.order.delete({
         where: { id },
       });
     } catch (error) {
