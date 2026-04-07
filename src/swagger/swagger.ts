@@ -1,7 +1,8 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { apiReference } from '@scalar/nestjs-api-reference';
 import { ConfigService } from '@nestjs/config';
+import { customPathDocs } from './swagger.paths';
 
 export function setupSwagger(
   app: INestApplication,
@@ -20,6 +21,18 @@ export function setupSwagger(
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
+  for (const [path, methods] of Object.entries(customPathDocs)) {
+    if (document.paths[path]) {
+      for (const [method, docs] of Object.entries(methods)) {
+        if (document.paths[path][method]) {
+          Object.assign(document.paths[path][method], docs);
+        }
+      }
+    } else {
+      Logger.warn(`Rota ${path} não encontrada na geração do Swagger.`);
+    }
+  }
 
   app.use(
     '/docs',
